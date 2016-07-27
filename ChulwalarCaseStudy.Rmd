@@ -1,0 +1,200 @@
+---
+title: "Chulwalar Case Study"
+author: "Aravind Veluchamy & Sandhya Amaresh"
+date: "July 27, 2016"
+output:
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Chulwalar case study - In this case study, we analyse the data for Blue Etel flower and build a forecast model based on the timeseries data for the same
+
+Steps:
+1 - Data extraction and clean up
+2 - Exploratory data analysis
+3 - Correration 
+4 - Forecast Model , comparision
+5 - Results
+
+### 1 - Data extraction and clean up
+#### Read the As Is, Planned & Indicators files from the DataFiles directory into a dataframe
+#### Spilt and extract the data for Blue Etel from the AsIs and Plan Dataframes 
+#### Transform the data to a timeseries object
+```{r}
+setwd("C:/Users/samaresh/SMU/Doing Data Science/ChulwalarCaseStudy")
+ImportedAsIsData <- read.csv("DataFiles/ImportedAsIsDataChulwalar.csv", header = F, sep=";", fill = T) 
+ImportedPlanData <- read.csv("DataFiles/ImportedPlanDataChulwalar.csv", header = F, sep=";", fill = T) 
+ImportedIndicators <- read.csv("DataFiles/ImportedIndicatorsChulwalar.csv", header = F, sep=";", fill = T) 
+
+
+BlueEtelAsIsVector <- c(ImportedAsIsData [58:69,2],ImportedAsIsData [58:69,3],ImportedAsIsData [58:69,4],ImportedAsIsData [58:69,5],ImportedAsIsData [58:69,6],ImportedAsIsData [58:69,7])
+BlueEtelPlanVector <- c(ImportedPlanData[58:69,2],ImportedPlanData[58:69,3],ImportedPlanData[58:69,4],ImportedPlanData[58:69,5],ImportedPlanData[58:69,6],ImportedPlanData[58:69,7])
+RedEtelPlanVector <- c(ImportedPlanData[72:83,2],ImportedPlanData[72:83,3],ImportedPlanData[72:83,4],ImportedPlanData[72:83,5],ImportedPlanData[72:83,6],ImportedPlanData[72:83,7])
+
+
+BlueEtelAsIs <- ts(BlueEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+BlueEtelPlan <- ts(BlueEtelPlanVector, start=c(2008,1), end=c(2013,12), frequency=12)
+```
+
+### 2 - Exploratory Data Analysis
+#### Plot the ts for AsIs and Planned Data 
+#### Obtain a correlation b/w the AsIs and Planned
+#### Decompose the TS using STL to analyse the seasonal, trend and irregular components
+
+```{r}
+library(fpp)
+options(scipen = 5)
+par(mfrow=c(1,2))
+plot(BlueEtelAsIs, col="orange", main="BlueEtelAsIs")
+plot(BlueEtelPlan, col="orange", main="BlueEtelPlan")
+```
+```{r}
+cor(BlueEtelAsIs , BlueEtelPlan)
+
+# The results show a very high planning accuracy. 
+BlueEltelAsIs_lm <- lm(BlueEtelAsIs ~ BlueEtelPlan , data = BlueEtelAsIs)
+summary(BlueEltelAsIs_lm)
+
+BlueEtelAsIs_tslm <- tslm(BlueEtelAsIs ~ BlueEtelPlan )
+summary(BlueEltelAsIs_lm)
+
+BlueEtelAsIs_stl <- stl(BlueEtelAsIs , s.window=5)
+
+par(mfrow=c(3,2))
+
+plot(BlueEtelAsIs_stl, col="black", main="BlueEtelAsIs_stl")
+
+par(mfrow=c(1,2))
+
+plot(BlueEtelAsIs_stl$time.series[,"trend"], col="orange")
+
+monthplot(BlueEtelAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
+```
+
+#### Based on the above plots we observer the following -
+#### The STL decompose the BlueEtelAsIs data into 4 plots - the Observed, Seasonal, Trend and Random
+#### From the Trend plot we can see a -ve trend in the export of Blue Etel from 2008 to 2011, and the trend becomes positive from 2011 thru 2013
+#### From the seasonal plot we can see that the exports fall during summer and then after the exquinox around Sept the exports pick up and we see a small reduction in exports during december which coincides with the indpendence day celebrations and again rises till march equinox
+
+
+
+### 4 - Forecast Models and Comparisons
+#### Model 1 - Simple exponential smoothing
+#### In this model the past values are used to calculate a forecast. The strength with which each value influences the forecast is weakened with help of a smoothing parameter. Thus we are dealing with a weighted average, whose values fade out the longer ago they were in the past.
+```{r}
+Model_ses <- ses(BlueEtelAsIs, h=12)
+summary(Model_ses)
+plot(Model_ses)
+```
+#### The Akaike's Information Criterion(AIC/AICc) or the Bayesian Information 
+#### Criterion (BIC) should be at minimum.
+```{r}
+plot(Model_ses, plot.conf=FALSE, ylab="Exports Chulwalar  )", xlab="Year", main="", fcol="white", type="o")
+lines(fitted(Model_ses), col="green", type="o")
+lines(Model_ses$mean, col="blue", type="o")
+legend("topleft",lty=1, col=c(1,"green"), c("data", expression(alpha == 0.671)),pch=1)
+```
+
+#### Model 2 - HOlt's Linear Method
+#### This model in addition to SES model uses the trend as well. When neither alpha nor beta are provided, they paramets are optimised
+```{r}
+Model_holt_1 <- holt(BlueEtelAsIs,h=12)
+summary(Model_holt_1)
+plot(Model_holt_1)
+```
+
+####  The trend is exponential if the intercepts(level) and the gradient (slope) are
+####  multiplied with eachother. The values are worse. As the Beta was very low in 
+####  the optimisation, the forecast is very similar to the ses() model. 
+
+```{r}
+Model_holt_2<- holt(BlueEtelAsIs, exponential=TRUE,h=12)
+summary(Model_holt_2)
+plot(Model_holt_2)
+```
+####  As such simple trends tend to forecast the future to positively, we have added a dampener.
+#### Similar values to that of Model_holt_1 
+```{r}
+Model_holt_3 <- holt(BlueEtelAsIs, damped=TRUE,h=12)
+summary(Model_holt_3)
+plot(Model_holt_3)
+```
+####  This also works for exponential trends. 
+####  The values remain worse. 
+```{r}
+Model_holt_4 <- holt(BlueEtelAsIs, exponential=TRUE, damped=TRUE,h=12)
+summary(Model_holt_4)
+plot(Model_holt_4)
+```
+
+####  level and slope can be plotted individually for each model.
+```{r}
+plot(Model_holt_1$model$state)
+plot(Model_holt_2$model$state)
+plot(Model_holt_3$model$state)
+plot(Model_holt_4$model$state)
+
+plot(Model_holt_1, plot.conf=FALSE, ylab="Exports Chulwalar  )", xlab="Year", main="", fcol="white", type="o")
+lines(fitted(Model_ses), col="purple", type="o")
+lines(fitted(Model_holt_1), col="blue", type="o")
+lines(fitted(Model_holt_2), col="red", type="o")
+lines(fitted(Model_holt_3), col="green", type="o")
+lines(fitted(Model_holt_4), col="orange", type="o")
+lines(Model_ses$mean, col="purple", type="o")
+lines(Model_holt_1$mean, col="blue", type="o")
+lines(Model_holt_2$mean, col="red", type="o")
+lines(Model_holt_3$mean, col="green", type="o")
+lines(Model_holt_4$mean, col="orange", type="o")
+legend("topleft",lty=1, col=c(1,"purple","blue","red","green","orange"), c("data", "SES","Holts auto", "Exponential", "Additive Damped", "Multiplicative Damped"),pch=1)
+```
+
+####  As these forecasts are not very convincing at the moment, there is no need 
+####  to export the data.
+
+#### Model 3 - Holt - Winter's seasonality model
+#### This model expands the Holt's model to futher include the seasonality aspect
+#### There are 2 models under this, the additive model and multiplicative model
+#### 3.1 Additive Model
+```{r}
+Model_hw_1 <- hw(BlueEtelAsIs ,seasonal="additive",h=12)
+summary(Model_hw_1)
+plot(Model_hw_1)
+```
+
+#### 3.2 Multiplicative Model
+```{r}
+Model_hw_2 <- hw(BlueEtelAsIs ,seasonal="multiplicative",h=12)
+summary(Model_hw_2)
+plot(Model_hw_2)
+```
+
+```{r}
+plot(Model_hw_1, ylab="Exports Chulwalar  ", plot.conf=FALSE, type="o", fcol="white", xlab="Year")
+lines(fitted(Model_hw_1), col="red", lty=2)
+lines(fitted(Model_hw_2), col="green", lty=2)
+lines(Model_hw_1$mean, type="o", col="red")
+lines(Model_hw_2$mean, type="o", col="green")
+legend("topleft",lty=1, pch=1, col=1:3, c("data","Holt Winters' Additive","Holt Winters' Multiplicative"))
+
+# In order to use the results later, they need to be converted into point forcasts.
+Model_hw_1_df <-as.data.frame(Model_hw_1) 
+Model_hw_1_PointForecast <- ts(Model_hw_1_df$"Point Forecast", start=c(2014,1), end=c(2014,12), frequency=12)
+Model_hw_1_PointForecast
+Model_hw_2_df <-as.data.frame(Model_hw_2) 
+Model_hw_2_PointForecast <- ts(Model_hw_2_df$"Point Forecast", start=c(2014,1), end=c(2014,12), frequency=12)
+Model_hw_2_PointForecast
+
+# Output instruction for the data export of the results for further use in Excel.
+#write.csv(Model_hw_1_PointForecast,file='Model_hw_1_PointForecast.csv')
+#write.csv(Model_hw_2_PointForecast,file='Model_hw_2_PointForecast.csv')
+```
+
+### Results -
+### Based on the results, we see that the multiplicative model is slightly better than the additive model.
+### The above table shows the forecast numbers based on both the models
