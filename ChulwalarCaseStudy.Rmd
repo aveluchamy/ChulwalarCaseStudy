@@ -35,7 +35,6 @@ ImportedIndicators <- read.csv("DataFiles/ImportedIndicatorsChulwalar.csv", head
 
 BlueEtelAsIsVector <- c(ImportedAsIsData [58:69,2],ImportedAsIsData [58:69,3],ImportedAsIsData [58:69,4],ImportedAsIsData [58:69,5],ImportedAsIsData [58:69,6],ImportedAsIsData [58:69,7])
 BlueEtelPlanVector <- c(ImportedPlanData[58:69,2],ImportedPlanData[58:69,3],ImportedPlanData[58:69,4],ImportedPlanData[58:69,5],ImportedPlanData[58:69,6],ImportedPlanData[58:69,7])
-RedEtelPlanVector <- c(ImportedPlanData[72:83,2],ImportedPlanData[72:83,3],ImportedPlanData[72:83,4],ImportedPlanData[72:83,5],ImportedPlanData[72:83,6],ImportedPlanData[72:83,7])
 
 
 BlueEtelAsIs <- ts(BlueEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
@@ -77,16 +76,48 @@ plot(BlueEtelAsIs_stl$time.series[,"trend"], col="orange")
 monthplot(BlueEtelAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
 ```
 
-#### Based on the above plots we observer the following -
+#### Based on the above plots we observe the following -
 #### The STL decompose the BlueEtelAsIs data into 4 plots - the Observed, Seasonal, Trend and Random
 #### From the Trend plot we can see a -ve trend in the export of Blue Etel from 2008 to 2011, and the trend becomes positive from 2011 thru 2013
 #### From the seasonal plot we can see that the exports fall during summer and then after the exquinox around Sept the exports pick up and we see a small reduction in exports during december which coincides with the indpendence day celebrations and again rises till march equinox
 
+#### 3 - Correlation with indicators
+#### The following indicators are to be tested:
+####    1     Monthly Change in Export Price Index (CEPI)
+####  	2 	Monthly Satisfaction Index (SI) government based data
+####  	3 	Average monthly temperatures in Chulwalar
+####  	4 	Monthly births in Chulwalar
+####  	5 	Monthly Satisfaction Index (SI) external index 
 
+```{r}
+CEPIVector <- c(ImportedIndicators[2:13,2],ImportedIndicators[2:13,3],ImportedIndicators[2:13,4],ImportedIndicators[2:13,5],ImportedIndicators[2:13,6],ImportedIndicators[2:13,7])
+CEPI <- ts(CEPIVector , start=c(2008,1), end=c(2013,12), frequency=12)
+plot(CEPI, main="CEPI")
+
+cor(BlueEtelAsIs , CEPI)
+
+SIGovVector <- c(ImportedIndicators[16:27,2],ImportedIndicators[16:27,3],ImportedIndicators[16:27,4],ImportedIndicators[16:27,5],ImportedIndicators[16:27,6],ImportedIndicators[16:27,7])
+SIGov <- ts(SIGovVector , start=c(2008,1), end=c(2013,12), frequency=12)
+
+cor(BlueEtelAsIs , SIGov)
+
+
+TemperatureVector <- c(ImportedIndicators[30:41,2],ImportedIndicators[30:41,3],ImportedIndicators[30:41,4],ImportedIndicators[30:41,5],ImportedIndicators[30:41,6],ImportedIndicators[30:41,7])
+Temperature <- ts(TemperatureVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+cor(BlueEtelAsIs , Temperature)
+
+BirthsVector <- c(ImportedIndicators[44:55,2],ImportedIndicators[44:55,3],ImportedIndicators[44:55,4],ImportedIndicators[44:55,5],ImportedIndicators[44:55,6],ImportedIndicators[44:55,7])
+Births <- ts(BirthsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+cor(BlueEtelAsIs , Births)
+
+```
+#### Based on the above correlations we can see that the temperature has a strong correlation to the BlueEtelAsIs
 
 ### 4 - Forecast Models and Comparisons
 #### Model 1 - Simple exponential smoothing
-#### In this model the past values are used to calculate a forecast. The strength with which each value influences the forecast is weakened with help of a smoothing parameter. Thus we are dealing with a weighted average, whose values fade out the longer ago they were in the past.
+#### In this model the past values are used to calculate a forecast. The strength with which each value influences the forecast is weakened with help of a smoothing parameter. Thus we are dealing with a weighted average, whose values fade out the farther out they were in the past.
 ```{r}
 Model_ses <- ses(BlueEtelAsIs, h=12)
 summary(Model_ses)
@@ -101,7 +132,7 @@ lines(Model_ses$mean, col="blue", type="o")
 legend("topleft",lty=1, col=c(1,"green"), c("data", expression(alpha == 0.671)),pch=1)
 ```
 
-#### Model 2 - HOlt's Linear Method
+#### Model 2 - Holt's Linear Method
 #### This model in addition to SES model uses the trend as well. When neither alpha nor beta are provided, they paramets are optimised
 ```{r}
 Model_holt_1 <- holt(BlueEtelAsIs,h=12)
@@ -196,5 +227,29 @@ Model_hw_2_PointForecast
 ```
 
 ### Results -
-### Based on the results, we see that the multiplicative model is slightly better than the additive model.
-### The above table shows the forecast numbers based on both the models
+#### SES 
+####      AIC     AICc      BIC 
+#### 1920.425 1920.599 1924.978 
+#### Holt's Linear Model
+####      AIC     AICc      BIC 
+#### 1925.314 1925.911 1934.420 
+#### Holt's method with exponential trend
+####      AIC     AICc      BIC 
+#### 1946.718 1947.315 1955.824 
+#### Damped Holt's Model
+####      AIC     AICc      BIC 
+#### 1927.177 1928.086 1938.560 
+#### Damped Holt's method with exponential trend
+####      AIC     AICc      BIC 
+#### 1947.789 1948.698 1959.172 
+#### Holt-Winters' additive model
+####      AIC     AICc      BIC 
+#### 1854.618 1864.509 1891.045 
+#### Holt-Winters' multiplicative model
+####      AIC     AICc      BIC 
+#### 1848.746 1858.637 1885.173 
+#### Based on the AIC values, we see that Holt-Winters' multiplicative model is the best fit for the determining the forecast
+#### The forecast for Blue Etel based on this model is
+```{r}
+Model_hw_2_PointForecast
+```

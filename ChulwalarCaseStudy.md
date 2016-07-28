@@ -29,7 +29,6 @@ ImportedIndicators <- read.csv("DataFiles/ImportedIndicatorsChulwalar.csv", head
 
 BlueEtelAsIsVector <- c(ImportedAsIsData [58:69,2],ImportedAsIsData [58:69,3],ImportedAsIsData [58:69,4],ImportedAsIsData [58:69,5],ImportedAsIsData [58:69,6],ImportedAsIsData [58:69,7])
 BlueEtelPlanVector <- c(ImportedPlanData[58:69,2],ImportedPlanData[58:69,3],ImportedPlanData[58:69,4],ImportedPlanData[58:69,5],ImportedPlanData[58:69,6],ImportedPlanData[58:69,7])
-RedEtelPlanVector <- c(ImportedPlanData[72:83,2],ImportedPlanData[72:83,3],ImportedPlanData[72:83,4],ImportedPlanData[72:83,5],ImportedPlanData[72:83,6],ImportedPlanData[72:83,7])
 
 
 BlueEtelAsIs <- ts(BlueEtelAsIsVector, start=c(2008,1), end=c(2013,12), frequency=12)
@@ -207,12 +206,74 @@ monthplot(BlueEtelAsIs_stl$time.series[,"seasonal"], main="", ylab="Seasonal")
 
 ![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-3-2.png)<!-- -->
 
-#### Based on the above plots we observer the following -
+#### Based on the above plots we observe the following -
 #### The STL decompose the BlueEtelAsIs data into 4 plots - the Observed, Seasonal, Trend and Random
 #### From the Trend plot we can see a -ve trend in the export of Blue Etel from 2008 to 2011, and the trend becomes positive from 2011 thru 2013
 #### From the seasonal plot we can see that the exports fall during summer and then after the exquinox around Sept the exports pick up and we see a small reduction in exports during december which coincides with the indpendence day celebrations and again rises till march equinox
 
+#### 3 - Correlation with indicators
+#### The following indicators are to be tested:
+####    1     Monthly Change in Export Price Index (CEPI)
+####  	2 	Monthly Satisfaction Index (SI) government based data
+####  	3 	Average monthly temperatures in Chulwalar
+####  	4 	Monthly births in Chulwalar
+####  	5 	Monthly Satisfaction Index (SI) external index 
 
+
+```r
+CEPIVector <- c(ImportedIndicators[2:13,2],ImportedIndicators[2:13,3],ImportedIndicators[2:13,4],ImportedIndicators[2:13,5],ImportedIndicators[2:13,6],ImportedIndicators[2:13,7])
+CEPI <- ts(CEPIVector , start=c(2008,1), end=c(2013,12), frequency=12)
+plot(CEPI, main="CEPI")
+```
+
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
+```r
+cor(BlueEtelAsIs , CEPI)
+```
+
+```
+## [1] 0.1448837
+```
+
+```r
+SIGovVector <- c(ImportedIndicators[16:27,2],ImportedIndicators[16:27,3],ImportedIndicators[16:27,4],ImportedIndicators[16:27,5],ImportedIndicators[16:27,6],ImportedIndicators[16:27,7])
+SIGov <- ts(SIGovVector , start=c(2008,1), end=c(2013,12), frequency=12)
+plot(SIGov, main="SIGov")
+```
+
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-4-2.png)<!-- -->
+
+```r
+cor(BlueEtelAsIs , SIGov)
+```
+
+```
+## [1] -0.04146932
+```
+
+```r
+TemperatureVector <- c(ImportedIndicators[30:41,2],ImportedIndicators[30:41,3],ImportedIndicators[30:41,4],ImportedIndicators[30:41,5],ImportedIndicators[30:41,6],ImportedIndicators[30:41,7])
+Temperature <- ts(TemperatureVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+cor(BlueEtelAsIs , Temperature)
+```
+
+```
+## [1] -0.6356067
+```
+
+```r
+BirthsVector <- c(ImportedIndicators[44:55,2],ImportedIndicators[44:55,3],ImportedIndicators[44:55,4],ImportedIndicators[44:55,5],ImportedIndicators[44:55,6],ImportedIndicators[44:55,7])
+Births <- ts(BirthsVector, start=c(2008,1), end=c(2013,12), frequency=12)
+
+cor(BlueEtelAsIs , Births)
+```
+
+```
+## [1] -0.2812913
+```
+#### Based on the above correlations we can see that the temperature has a strong correlation to the BlueEtelAsIs
 
 ### 4 - Forecast Models and Comparisons
 #### Model 1 - Simple exponential smoothing
@@ -270,7 +331,7 @@ summary(Model_ses)
 plot(Model_ses)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
 #### The Akaike's Information Criterion(AIC/AICc) or the Bayesian Information 
 #### Criterion (BIC) should be at minimum.
 
@@ -281,7 +342,7 @@ lines(Model_ses$mean, col="blue", type="o")
 legend("topleft",lty=1, col=c(1,"green"), c("data", expression(alpha == 0.671)),pch=1)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-5-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
 
 #### Model 2 - HOlt's Linear Method
 #### This model in addition to SES model uses the trend as well. When neither alpha nor beta are provided, they paramets are optimised
@@ -340,7 +401,7 @@ summary(Model_holt_1)
 plot(Model_holt_1)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-6-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
 
 ####  The trend is exponential if the intercepts(level) and the gradient (slope) are
 ####  multiplied with eachother. The values are worse. As the Beta was very low in 
@@ -383,25 +444,25 @@ summary(Model_holt_2)
 ## 
 ## Forecasts:
 ##          Point Forecast     Lo 80    Hi 80     Lo 95     Hi 95
-## Jan 2014       355234.5 221714.94 487760.4 155269.98  556247.3
-## Feb 2014       349026.0 187988.70 537122.9 122856.30  641965.2
-## Mar 2014       342925.9 164034.62 555802.5 101840.92  709693.2
-## Apr 2014       336932.5 143367.16 577808.6  88813.17  773761.7
-## May 2014       331043.9 127904.25 594013.1  74908.28  821326.9
-## Jun 2014       325258.1 110787.91 614899.4  63508.44  867956.1
-## Jul 2014       319573.5  98608.22 615999.0  55091.24  907402.4
-## Aug 2014       313988.2  91536.44 629241.4  46323.78  999398.5
-## Sep 2014       308500.6  81344.11 623140.1  41786.50  983437.5
-## Oct 2014       303108.8  72270.91 631024.6  36921.35 1029635.0
-## Nov 2014       297811.3  67378.68 626703.6  34098.28 1032555.7
-## Dec 2014       292606.4  62052.67 628448.7  30343.97 1066856.0
+## Jan 2014       355234.5 223263.12 487965.3 151969.25  556459.9
+## Feb 2014       349026.0 188833.52 521956.7 127666.12  641937.9
+## Mar 2014       342925.9 163713.43 558029.3 104256.22  708384.2
+## Apr 2014       336932.5 142251.36 576790.4  88663.97  765232.4
+## May 2014       331043.9 126601.12 588589.6  76451.62  811420.3
+## Jun 2014       325258.1 112750.42 607722.0  68162.73  873045.2
+## Jul 2014       319573.5 103027.39 611240.7  58404.85  941671.1
+## Aug 2014       313988.2  90464.37 619126.0  52446.97  939321.1
+## Sep 2014       308500.6  81960.44 631905.5  45787.54  991707.7
+## Oct 2014       303108.8  74911.60 641678.9  39660.85 1031812.0
+## Nov 2014       297811.3  66314.66 629773.7  33561.78 1063267.7
+## Dec 2014       292606.4  59605.16 633079.9  30555.57 1119888.7
 ```
 
 ```r
 plot(Model_holt_2)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-7-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
 ####  As such simple trends tend to forecast the future to positively, we have added a dampener.
 #### Similar values to that of Model_holt_1 
 
@@ -460,7 +521,7 @@ summary(Model_holt_3)
 plot(Model_holt_3)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
 ####  This also works for exponential trends. 
 ####  The values remain worse. 
 
@@ -501,25 +562,25 @@ summary(Model_holt_4)
 ## 
 ## Forecasts:
 ##          Point Forecast     Lo 80    Hi 80     Lo 95     Hi 95
-## Jan 2014       366201.7 234498.33 497224.2 155408.60  565038.6
-## Feb 2014       366208.4 203032.18 542044.5 132944.31  654076.9
-## Mar 2014       366214.1 185490.62 578404.2 118767.45  736323.5
-## Apr 2014       366219.0 162607.23 602790.6 103362.00  783692.1
-## May 2014       366223.1 149545.18 620984.4  94211.58  833939.8
-## Jun 2014       366226.6 136817.20 642144.8  81933.41  892015.9
-## Jul 2014       366229.6 125784.14 665501.2  75103.50  979967.3
-## Aug 2014       366232.2 117602.67 677961.8  67081.10 1021711.1
-## Sep 2014       366234.3 108849.57 715918.8  59226.26 1069837.1
-## Oct 2014       366236.2 101893.18 731865.6  54864.32 1121954.3
-## Nov 2014       366237.7  92548.07 749838.6  52410.50 1194024.5
-## Dec 2014       366239.1  89485.03 754619.2  46051.97 1255586.9
+## Jan 2014       366201.7 241476.27 492509.2 165272.60  557423.1
+## Feb 2014       366208.4 206704.11 536980.3 141579.69  644866.2
+## Mar 2014       366214.1 185049.19 570518.0 123891.24  730536.3
+## Apr 2014       366219.0 168936.74 599703.2 102698.62  790471.3
+## May 2014       366223.1 149617.76 625794.6  86603.83  868231.8
+## Jun 2014       366226.6 137522.06 650144.2  77153.89  928743.7
+## Jul 2014       366229.6 125018.68 664748.7  67608.35  983195.9
+## Aug 2014       366232.2 112951.70 681661.9  63000.36 1008772.3
+## Sep 2014       366234.3 106477.69 694549.7  59315.27 1098144.8
+## Oct 2014       366236.2  97118.75 705364.8  52566.55 1121930.2
+## Nov 2014       366237.7  91259.16 721858.3  48022.85 1154705.4
+## Dec 2014       366239.1  85791.80 726788.1  44549.09 1216323.2
 ```
 
 ```r
 plot(Model_holt_4)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-9-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 ####  level and slope can be plotted individually for each model.
 
@@ -527,25 +588,25 @@ plot(Model_holt_4)
 plot(Model_holt_1$model$state)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
 
 ```r
 plot(Model_holt_2$model$state)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-10-2.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-11-2.png)<!-- -->
 
 ```r
 plot(Model_holt_3$model$state)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-10-3.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-11-3.png)<!-- -->
 
 ```r
 plot(Model_holt_4$model$state)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-10-4.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-11-4.png)<!-- -->
 
 ```r
 plot(Model_holt_1, plot.conf=FALSE, ylab="Exports Chulwalar  )", xlab="Year", main="", fcol="white", type="o")
@@ -562,7 +623,7 @@ lines(Model_holt_4$mean, col="orange", type="o")
 legend("topleft",lty=1, col=c(1,"purple","blue","red","green","orange"), c("data", "SES","Holts auto", "Exponential", "Additive Damped", "Multiplicative Damped"),pch=1)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-10-5.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-11-5.png)<!-- -->
 
 ####  As these forecasts are not very convincing at the moment, there is no need 
 ####  to export the data.
@@ -629,7 +690,7 @@ summary(Model_hw_1)
 plot(Model_hw_1)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
 
 #### 3.2 Multiplicative Model
 
@@ -690,7 +751,7 @@ summary(Model_hw_2)
 plot(Model_hw_2)
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-12-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
 
 
 ```r
@@ -702,7 +763,7 @@ lines(Model_hw_2$mean, type="o", col="green")
 legend("topleft",lty=1, pch=1, col=1:3, c("data","Holt Winters' Additive","Holt Winters' Multiplicative"))
 ```
 
-![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+![](ChulwalarCaseStudy_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 ```r
 # In order to use the results later, they need to be converted into point forcasts.
@@ -738,5 +799,37 @@ Model_hw_2_PointForecast
 ```
 
 ### Results -
-### Based on the results, we see that the multiplicative model is slightly better than the additive model.
-### The above table shows the forecast numbers based on both the models
+#### SES 
+####      AIC     AICc      BIC 
+#### 1920.425 1920.599 1924.978 
+#### Holt's Linear Model
+####      AIC     AICc      BIC 
+#### 1925.314 1925.911 1934.420 
+#### Holt's method with exponential trend
+####      AIC     AICc      BIC 
+#### 1946.718 1947.315 1955.824 
+#### Damped Holt's Model
+####      AIC     AICc      BIC 
+#### 1927.177 1928.086 1938.560 
+#### Damped Holt's method with exponential trend
+####      AIC     AICc      BIC 
+#### 1947.789 1948.698 1959.172 
+#### Holt-Winters' additive model
+####      AIC     AICc      BIC 
+#### 1854.618 1864.509 1891.045 
+#### Holt-Winters' multiplicative model
+####      AIC     AICc      BIC 
+#### 1848.746 1858.637 1885.173 
+#### Based on the AIC values, we see that Holt-Winters' multiplicative model is the best fit for the determining the forecast
+#### The forecast for Blue Etel based on this model is
+
+```r
+Model_hw_2_PointForecast
+```
+
+```
+##           Jan      Feb      Mar      Apr      May      Jun      Jul
+## 2014 435410.6 414001.1 416470.7 332085.6 281716.0 265920.0 255076.9
+##           Aug      Sep      Oct      Nov      Dec
+## 2014 314285.4 460190.3 515758.4 479241.3 451675.7
+```
